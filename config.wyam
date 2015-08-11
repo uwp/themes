@@ -1,0 +1,28 @@
+Pipelines.Add("Styles",
+    ReadFiles(@"styles\*.md"),
+	FrontMatter(Yaml()),
+	Markdown(),
+	Meta("Post", x => x.Content),
+	ReadFiles(@"styles\style.cshtml"),
+	Razor(),
+	Meta("PostFile", x => string.Format(@"styles\{0}.html", ((string)x["Title"]).ToLower().Replace(' ', '-'))),
+	WriteFiles(x => (string)x["PostFile"]) 
+);
+
+Pipelines.Add("Root",
+    ReadFiles("*.md").TopDirectoryOnly(),
+    FrontMatter(Yaml()),
+    Markdown(),
+    Concat(
+        ReadFiles("*.cshtml")
+            .TopDirectoryOnly()
+            .Where(x => Path.GetFileName(x)[0] != '_'),
+        FrontMatter(Yaml())     
+    ),
+    Razor(),
+    WriteFiles(".html")
+);
+
+Pipelines.Add("Resources",
+    CopyFiles("*").Where(x => Path.GetExtension(x) != ".cshtml" && Path.GetExtension(x) != ".md")
+);

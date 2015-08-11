@@ -1,0 +1,38 @@
+branches:
+  only:
+    - master
+    
+environment:
+  access_token:
+    secure: cAWuTkfqiLC+aZxFAUqSK84xPeoBi4ihiDtEpRMoR08mI05510dQJ3H/RbbaMRi+
+
+install:
+  - mkdir ..\Wyam
+  - mkdir ..\Output
+  # Fetch the latest version of Wyam 
+  - "curl -s https://raw.githubusercontent.com/Wyamio/Wyam/master/RELEASE -o ..\\Wyam\\wyamversion.txt"
+  - set /P WYAMVERSION=< ..\Wyam\wyamversion.txt
+  - echo %WYAMVERSION%
+  # Get and unzip the latest version of Wyam
+  #- ps: Start-FileDownload "https://github.com/Wyamio/Wyam/releases/download/$env:WYAMVERSION/Wyam.zip" -FileName "..\Wyam\Wyam.zip"
+  - ps: Start-FileDownload "https://github.com/Wyamio/Wyam/releases/download/v0.6.0-alpha/Wyam.zip" -FileName "..\Wyam\Wyam.zip"
+  - 7z x ..\Wyam\Wyam.zip -o..\Wyam -r
+
+build_script:
+  - ..\Wyam\Wyam.exe --output ..\Output
+
+on_success:
+  # Switch branches to gh-pages, clean the folder, copy everything in from the Wyam output, and commit/push
+  # See http://www.appveyor.com/docs/how-to/git-push for more info
+  - git config --global credential.helper store
+  - git config --global user.email "tpetrina@tpetrina.com"
+  - git config --global user.name "Toni Petrina"
+  - ps: Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
+  - git checkout gh-pages
+  - git rm -rf .
+  - xcopy ..\Output . /E
+  - echo docs.uwp.io > CNAME
+  - git remote set-url origin https://github.com/MassivePixel/uwp-io.git
+  - git add -A
+  - git commit -a -m "Commit from AppVeyor"
+  - git push
